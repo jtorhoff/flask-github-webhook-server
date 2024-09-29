@@ -13,10 +13,7 @@ load_dotenv(BASE_DIR / '.env')
 
 
 app = Flask(__name__)
-API_NAME = os.getenv('API_NAME')
-API_DESCRIPTION = os.getenv('API_DESCRIPTION')
-API_VERSION = os.getenv('API_VERSION')
-DEPLOY_COMMAND = os.getenv('DEPLOY_COMMAND')
+DEPLOY_COMMAND = os.getenv('GITHUB_WEBHOOK_DEPLOY_COMMAND')
 GITHUB_WEBHOOK_SECRET = os.getenv('GITHUB_WEBHOOK_SECRET')
 
 
@@ -30,17 +27,11 @@ def verify_signature():
     if sha_name != 'sha256':
         return False
 
-    local_signature = hmac.new(GITHUB_WEBHOOK_SECRET.encode(), msg=request.get_data(), digestmod='sha256')
+    local_signature = hmac.new(
+        GITHUB_WEBHOOK_SECRET.encode(), # type: ignore
+        msg=request.get_data(), 
+        digestmod='sha256') 
     return hmac.compare_digest(local_signature.hexdigest(), signature)
-
-
-@app.route('/')
-def index():
-    return {
-        'name': API_NAME,
-        'description': API_DESCRIPTION,
-        'version': API_VERSION,
-    }
 
 
 @app.route('/deploy', methods=['POST'])
@@ -49,11 +40,11 @@ def deploy():
 
     if not verified:
         return {
-            'message': 'The request could not be verified. Signature missing or does not match.',
+            'message': 'Signature missing or does not match.',
             'verified': False,
         }, 400
 
-    subprocess.call(DEPLOY_COMMAND, shell=True)
+    subprocess.call(DEPLOY_COMMAND, shell=True) # type: ignore
 
     return {
         'message': 'Deploying...',
